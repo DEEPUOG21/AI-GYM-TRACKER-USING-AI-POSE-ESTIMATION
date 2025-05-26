@@ -20,16 +20,24 @@
 Let’s refine your document slightly to match those headings clearly and consistently:
 
 🏋️‍♂️ AI Gym Tracker — Real-Time Exercise Form Analyzer with Pose Estimation
+
 🔍 Overview
 AI Gym Tracker is an AI-powered fitness monitoring application that uses human pose estimation and machine learning to track workout repetitions and provide real-time feedback on form and posture. Designed for accessibility and ease of use, it leverages MediaPipe, TensorFlow, and OpenCV, with a clean, interactive interface built using Streamlit.
 
 🚀 Features
+
 🧍 Real-Time Pose Estimation using MediaPipe's holistic model
+
 🔁 Exercise Detection & Rep Counting for bicep curls and other exercises
+
 🧘 Form Feedback Mechanism to help correct user posture
+
 🎥 Video Input Support for webcam or pre-recorded videos
+
 🔊 Voice Feedback using gTTS and playsound
+
 📊 Data Visualization (optional) with matplotlib and seaborn
+
 🌐 Streamlit UI for interactive usage and rapid testing
 
 🧰 Tech Stack & Libraries
