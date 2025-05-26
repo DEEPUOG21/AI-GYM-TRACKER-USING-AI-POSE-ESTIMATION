@@ -105,13 +105,19 @@ streamlit run main.py
 Add a GIF or video here showcasing the app in action (e.g., rep counting, pose detection in real time).
 
 🙌 Contributing
+
 Contributions are welcome!
 Feel free to:
+
 Open issues
+
 Submit pull requests
+
 Suggest new features
 
 📄 License
+
 This project is licensed under the MIT License.
+
 Feel free to use and modify it for personal or educational purposes.
 
