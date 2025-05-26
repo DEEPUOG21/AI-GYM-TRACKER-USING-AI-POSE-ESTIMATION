@@ -60,17 +60,29 @@ Voice (optional): gTTS, SpeechRecognition
 
 
 📁 Folder Structure
+
 bash
+
 Copy
+
 Edit
+
 📁 ai-gym-tracker/
+
 ├── main.py                 # Streamlit entry point
+
 ├── ExerciseAiTrainer.py    # Exercise logic and pose evaluation
+
 ├── models/                 # Trained ML models
+
 ├── utils/                  # Helper functions (if separated)
+
 ├── assets/                 # Demo videos, images, icons
+
 ├── requirements.txt        # Python dependencies
+
 └── README.md               # Project overview
+
 ⚙️ Getting Started
 1. Clone the Repository
 bash
