@@ -1,23 +1,13 @@
 ✅ Sections in the README
-Project Title & Tagline
+1)Project Title & Tagline
+2)Overview
+3)Features
+4)Tech Stack & Libraries
+5)Folder Structure
+6)Getting Started
+7)Contributing
+8)License
 
-Overview
-
-Features
-
-Tech Stack & Libraries
-
-Folder Structure
-
-Getting Started
-
-Demo
-
-Contributing
-
-License
-
-Contact
 
 Let’s refine your document slightly to match those headings clearly and consistently:
 
@@ -27,34 +17,21 @@ AI Gym Tracker is an AI-powered fitness monitoring application that uses human p
 
 🚀 Features
 🧍 Real-Time Pose Estimation using MediaPipe's holistic model
-
 🔁 Exercise Detection & Rep Counting for bicep curls and other exercises
-
 🧘 Form Feedback Mechanism to help correct user posture
-
 🎥 Video Input Support for webcam or pre-recorded videos
-
 🔊 Voice Feedback using gTTS and playsound
-
 📊 Data Visualization (optional) with matplotlib and seaborn
-
 🌐 Streamlit UI for interactive usage and rapid testing
 
 🧰 Tech Stack & Libraries
 Language: Python 3.9
-
 Core ML: TensorFlow, Scikit-learn, Optuna
-
 Pose Estimation: MediaPipe
-
 Video Processing: OpenCV
-
 Web Interface: Streamlit
-
 Data Handling: NumPy, Pandas
-
 Visualization: Matplotlib, Seaborn
-
 Voice (optional): gTTS, SpeechRecognition
 
 📁 Folder Structure
@@ -93,20 +70,11 @@ Add a GIF or video here showcasing the app in action (e.g., rep counting, pose d
 🙌 Contributing
 Contributions are welcome!
 Feel free to:
-
 Open issues
-
 Submit pull requests
-
 Suggest new features
 
 📄 License
 This project is licensed under the MIT License.
 Feel free to use and modify it for personal or educational purposes.
 
-📬 Contact
-For questions, feedback, or collaboration:
-
-Your Name – your.email@example.com
-
-GitHub – github.com/your-username
