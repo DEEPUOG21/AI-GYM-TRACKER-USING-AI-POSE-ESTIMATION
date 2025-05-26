@@ -41,14 +41,23 @@ AI Gym Tracker is an AI-powered fitness monitoring application that uses human p
 🌐 Streamlit UI for interactive usage and rapid testing
 
 🧰 Tech Stack & Libraries
+
 Language: Python 3.9
+
 Core ML: TensorFlow, Scikit-learn, Optuna
+
 Pose Estimation: MediaPipe
+
 Video Processing: OpenCV
+
 Web Interface: Streamlit
+
 Data Handling: NumPy, Pandas
+
 Visualization: Matplotlib, Seaborn
+
 Voice (optional): gTTS, SpeechRecognition
+
 
 📁 Folder Structure
 bash
