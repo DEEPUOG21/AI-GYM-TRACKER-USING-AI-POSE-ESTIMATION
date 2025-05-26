@@ -1,11 +1,18 @@
 ✅ Sections in the README
 1)Project Title & Tagline
+
 2)Overview
+
 3)Features
+
 4)Tech Stack & Libraries
+
 5)Folder Structure
+
 6)Getting Started
+
 7)Contributing
+
 8)License
 
 
