@@ -101,7 +101,9 @@ AI-GYM-TRACKER
 ├── requirements.txt
 └── README.md
 
-🧬 Machine Learning Model
+---
+
+##🧬 Machine Learning Model
 
 Model Used:
 
