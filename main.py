@@ -8,30 +8,25 @@ user_site = site.getusersitepackages()
 if user_site not in sys.path:
     sys.path.insert(0, user_site)
 
-# Debug: install cv2 and show exactly where it lands
-try:
-    import cv2
-except ImportError:
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"],
-        capture_output=True, text=True
-    )
-    # Find where cv2 actually got installed
-    find_result = subprocess.run(
-        ["find", "/home", "-name", "cv2*", "-type", "f"],
-        capture_output=True, text=True
-    )
-    cv2_paths = find_result.stdout.strip().split("\n")
-    # Add every parent directory of cv2 to sys.path
-    for p in cv2_paths:
-        if p:
-            parent = os.path.dirname(p)
-            grandparent = os.path.dirname(parent)
-            for path in [parent, grandparent]:
-                if path not in sys.path:
-                    sys.path.insert(0, path)
-    import cv2
+# Install compatible numpy first, then cv2
+subprocess.run([sys.executable, "-m", "pip", "install", "numpy==1.26.4"], check=False)
+subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"], check=False)
 
+# Find where cv2 got installed and add to path
+find_result = subprocess.run(
+    ["find", "/home", "-name", "cv2*", "-type", "f"],
+    capture_output=True, text=True
+)
+cv2_paths = find_result.stdout.strip().split("\n")
+for p in cv2_paths:
+    if p:
+        parent = os.path.dirname(p)
+        grandparent = os.path.dirname(parent)
+        for path in [parent, grandparent]:
+            if path not in sys.path:
+                sys.path.insert(0, path)
+
+import cv2
 import streamlit as st
 import tempfile
 import ExerciseAiTrainer as exercise
