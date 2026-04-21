@@ -1,2 +1,2 @@
 #!/bin/bash
-pip install opencv-python-headless
+pip install --force-reinstall opencv-python-headless==4.8.0.76
