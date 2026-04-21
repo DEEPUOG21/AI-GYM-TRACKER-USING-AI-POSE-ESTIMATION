@@ -3,29 +3,34 @@ import site
 import subprocess
 import os
 
-# Step 1: Install numpy and cv2 to user site-packages
-subprocess.run([sys.executable, "-m", "pip", "install", "numpy==1.26.4"], check=False)
-subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"], check=False)
-subprocess.run([sys.executable, "-m", "pip", "install", "mediapipe==0.10.14"], check=False)
-subprocess.run([sys.executable, "-m", "pip", "install", "joblib", "scikit-learn==1.5.0"], check=False)
-subprocess.run([sys.executable, "-m", "pip", "install", "tensorflow==2.15.0", "keras==2.15.0"], check=False)
-
-# Step 2: Force user site-packages to front of sys.path BEFORE any numpy import
+# Add user site-packages to front of path BEFORE any installs
 user_site = site.getusersitepackages()
-# Remove any existing numpy from sys.path to avoid conda's numpy 2.x loading
-sys.path = [p for p in sys.path if 'numpy' not in p]
-# Insert user site-packages at position 0 so it wins over conda
 if user_site not in sys.path:
     sys.path.insert(0, user_site)
 
-# Step 3: Force reload numpy from user path
-import importlib
-import numpy
-importlib.reload(numpy)
+# Install all packages to user site-packages
+pkgs = [
+    "numpy==1.26.4",
+    "opencv-python-headless==4.8.0.76",
+    "mediapipe==0.10.14",
+    "joblib",
+    "scikit-learn==1.5.0",
+    "tensorflow==2.15.0",
+    "keras==2.15.0",
+    "openai==1.30.1",
+    "python-dotenv==1.0.1",
+    "pandas==2.2.2",
+    "protobuf==4.25.3",
+]
+for pkg in pkgs:
+    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", pkg], check=False)
 
-# Step 4: Now import cv2
+# Remove stale numpy from sys.modules so fresh one loads from user_site
+for mod in list(sys.modules.keys()):
+    if mod == "numpy" or mod.startswith("numpy."):
+        del sys.modules[mod]
+
 import cv2
-
 import streamlit as st
 import tempfile
 import ExerciseAiTrainer as exercise
