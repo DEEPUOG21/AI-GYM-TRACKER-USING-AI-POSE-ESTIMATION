@@ -1,12 +1,18 @@
 import sys
+import subprocess
 
-# Hardcode the user site-packages path that pip installs to
-for p in [
-    "/home/appuser/.local/lib/python3.10/site-packages",
-    "/home/adminuser/.local/lib/python3.10/site-packages",
-]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+# Install directly into conda's site-packages using conda's pip
+conda_pip = "/home/adminuser/.conda/bin/pip"
+pkgs = [
+    "opencv-python-headless==4.10.0.84",
+    "mediapipe==0.10.14",
+    "tensorflow==2.17.0",
+    "keras==3.4.1",
+    "joblib",
+    "scikit-learn==1.5.0",
+]
+for pkg in pkgs:
+    subprocess.run([conda_pip, "install", "--quiet", pkg], check=False)
 
 import streamlit as st
 import cv2
