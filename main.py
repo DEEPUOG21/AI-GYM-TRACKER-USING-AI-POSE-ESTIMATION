@@ -1,17 +1,15 @@
+import sys
+import site
+
+# Add user site-packages to path first so ALL pip-installed packages are found
+user_site = site.getusersitepackages()
+if user_site not in sys.path:
+    sys.path.insert(0, user_site)
+
 import streamlit as st
 # from Audio import text_to_speech, get_audio
 import tempfile
-
-try:
-    import cv2
-except ImportError:
-    import subprocess, sys
-    subprocess.run([sys.executable, "-m", "pip", "install",
-                    "numpy==1.26.4", "opencv-python-headless==4.8.0.76"], check=False)
-    import site
-    sys.path.insert(0, site.getusersitepackages())
-    import cv2
-
+import cv2
 import ExerciseAiTrainer as exercise
 from chatbot import chat_ui
 import time
@@ -38,8 +36,6 @@ def main():
         st.write('## Upload your video and select the correct type of Exercise to count repetitions')
         st.write("")
         st.write('Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.')
-
-       # st.set_option('deprecation.showfileUploaderEncoding', False)
 
         st.sidebar.markdown('-------')
 
@@ -122,9 +118,8 @@ def main():
         start_button = st.button('Start Exercise')
 
         if start_button:
-            time.sleep(2)  # Add a delay of 2 seconds
+            time.sleep(2)
             ready = True
-            # for each type of exercise call the method that analyze that exercise
             if exercise_general == 'Bicept Curl':
                 while ready:
                     cap = cv2.VideoCapture(0)
