@@ -1,7 +1,14 @@
 import streamlit as st
 # from Audio import text_to_speech, get_audio
-import cv2
 import tempfile
+
+try:
+    import cv2
+except ImportError:
+    import subprocess, sys
+    subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"], check=True)
+    import cv2
+
 import ExerciseAiTrainer as exercise
 from chatbot import chat_ui
 import time
@@ -50,20 +57,6 @@ def main():
         else:
             st.warning("Please upload a video to proceed.")
             return
-
-
-
-        # if no video uploaded then use a demo
-        # if not video_file_buffer:
-        #     DEMO_VIDEO = 'demo_2.mp4'
-        #     cap = cv2.VideoCapture(DEMO_VIDEO)
-        #     tfflie.name = DEMO_VIDEO
-
-        # if video is uploaded then analyze the video
-        # else:
-        #     tfflie.write(video_file_buffer.read())
-        #     cap = cv2.VideoCapture(tfflie.name)
-        # st.markdown('-------')
 
         # Visualize Video before analysis
         st.sidebar.text('Input Video')
@@ -121,32 +114,9 @@ def main():
             'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
         )
 
-        # Define a button for start the analysis (pose estimation) on the webcam
-        # st.write(' Click button and say "yes" when you are in the correct position for training')
-        # button = st.button('Activate AI Trainer')
-
-        # st.markdown('-------')
-
         # New button for direct activation
         st.write(' Click button to start training')
         start_button = st.button('Start Exercise')
-
-        # # Visualize video that explain the correct forms for the exercises
-        # if exercise_general == 'Bicept Curl':
-        #     st.write('## Bicept Curl Execution Video')
-        #     st.video('curl_form.mp4')
-
-        # elif exercise_general == 'Push Up':
-        #     st.write('## Push Up Execution Video')
-        #     st.video('push_up_form.mp4')
-
-        # elif exercise_general == 'Squat':
-        #     st.write('## Squat Execution Video')
-        #     st.video('squat_form_2.mp4')
-
-        # elif exercise_general == 'Shoulder Press':
-        #     st.write('## Shoulder Press Execution')
-        #     st.video('shoulder_press_form.mp4')
 
         if start_button:
             time.sleep(2)  # Add a delay of 2 seconds
