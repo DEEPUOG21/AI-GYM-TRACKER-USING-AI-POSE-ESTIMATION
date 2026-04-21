@@ -1,28 +1,36 @@
 import sys
 import site
 import subprocess
+import os
 
-# Add user site-packages to path first so ALL pip-installed packages are found
+# Add user site-packages to path first
 user_site = site.getusersitepackages()
 if user_site not in sys.path:
     sys.path.insert(0, user_site)
 
-# Ensure cv2 is installed and importable
+# Debug: install cv2 and show exactly where it lands
 try:
     import cv2
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install",
-                    "opencv-python-headless==4.8.0.76"], check=False)
-    if user_site not in sys.path:
-        sys.path.insert(0, user_site)
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"],
+        capture_output=True, text=True
+    )
+    # Find where cv2 actually got installed
+    find_result = subprocess.run(
+        ["find", "/home", "-name", "cv2*", "-type", "f"],
+        capture_output=True, text=True
+    )
+    cv2_paths = find_result.stdout.strip().split("\n")
+    # Add every parent directory of cv2 to sys.path
+    for p in cv2_paths:
+        if p:
+            parent = os.path.dirname(p)
+            grandparent = os.path.dirname(parent)
+            for path in [parent, grandparent]:
+                if path not in sys.path:
+                    sys.path.insert(0, path)
     import cv2
-
-# Ensure mediapipe is installed and importable
-try:
-    import mediapipe
-except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install",
-                    "mediapipe==0.10.14"], check=False)
 
 import streamlit as st
 import tempfile
@@ -46,50 +54,38 @@ def main():
         st.write('## Upload your video and select the correct type of Exercise to count repetitions')
         st.write("")
         st.write('Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.')
-
         st.sidebar.markdown('-------')
-
         exercise_options = st.sidebar.selectbox(
             'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
         )
-
         st.sidebar.markdown('-------')
-
         video_file_buffer = st.sidebar.file_uploader("Upload a video", type=["mp4", "mov", 'avi', 'asf', 'm4v'])
         tfflie = tempfile.NamedTemporaryFile(delete=False)
-
         if video_file_buffer is not None:
             tfflie.write(video_file_buffer.read())
             cap = cv2.VideoCapture(tfflie.name)
         else:
             st.warning("Please upload a video to proceed.")
             return
-
         st.sidebar.text('Input Video')
         st.sidebar.video(tfflie.name)
-
         st.markdown('## Input Video')
         st.video(tfflie.name)
-
         st.markdown('-------')
-
         st.markdown(' ## Output Video')
         if exercise_options == 'Bicept Curl':
             exer = exercise.Exercise()
             counter, stage_right, stage_left = 0, None, None
             exer.bicept_curl(cap, is_video=True, counter=counter, stage_right=stage_right, stage_left=stage_left)
-
         elif exercise_options == 'Push Up':
             st.write("The exercise need to be filmed showing your left side or facing frontally")
             exer = exercise.Exercise()
             counter, stage = 0, None
             exer.push_up(cap, is_video=True, counter=counter, stage=stage)
-
         elif exercise_options == 'Squat':
             exer = exercise.Exercise()
             counter, stage = 0, None
             exer.squat(cap, is_video=True, counter=counter, stage=stage)
-
         elif exercise_options == 'Shoulder Press':
             exer = exercise.Exercise()
             counter, stage = 0, None
@@ -101,7 +97,6 @@ def main():
         st.markdown('-------')
         st.write("Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.")
         auto_classify_button = st.button('Start Auto Classification')
-
         if auto_classify_button:
             time.sleep(2)
             exer = exercise.Exercise()
@@ -110,14 +105,11 @@ def main():
     elif options == 'WebCam':
         st.markdown('-------')
         st.sidebar.markdown('-------')
-
         exercise_general = st.sidebar.selectbox(
             'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
         )
-
         st.write(' Click button to start training')
         start_button = st.button('Start Exercise')
-
         if start_button:
             time.sleep(2)
             ready = True
@@ -128,7 +120,6 @@ def main():
                     counter, stage_right, stage_left = 0, None, None
                     exer.bicept_curl(cap, counter=counter, stage_right=stage_right, stage_left=stage_left)
                     break
-
             elif exercise_general == 'Push Up':
                 while ready:
                     cap = cv2.VideoCapture(0)
@@ -136,7 +127,6 @@ def main():
                     counter, stage = 0, None
                     exer.push_up(cap, counter=counter, stage=stage)
                     break
-
             elif exercise_general == 'Squat':
                 while ready:
                     cap = cv2.VideoCapture(0)
@@ -144,7 +134,6 @@ def main():
                     counter, stage = 0, None
                     exer.squat(cap, counter=counter, stage=stage)
                     break
-
             elif exercise_general == 'Shoulder Press':
                 while ready:
                     cap = cv2.VideoCapture(0)
