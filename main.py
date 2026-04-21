@@ -8,6 +8,7 @@ subprocess.run([sys.executable, "-m", "pip", "install", "numpy==1.26.4"], check=
 subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"], check=False)
 subprocess.run([sys.executable, "-m", "pip", "install", "mediapipe==0.10.14"], check=False)
 subprocess.run([sys.executable, "-m", "pip", "install", "joblib", "scikit-learn==1.5.0"], check=False)
+subprocess.run([sys.executable, "-m", "pip", "install", "tensorflow==2.15.0", "keras==2.15.0"], check=False)
 
 # Step 2: Force user site-packages to front of sys.path BEFORE any numpy import
 user_site = site.getusersitepackages()
