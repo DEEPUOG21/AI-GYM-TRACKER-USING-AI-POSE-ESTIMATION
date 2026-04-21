@@ -1,18 +1,25 @@
 import sys
+import os
 import subprocess
 
-# Install directly into conda's site-packages using conda's pip
 conda_pip = "/home/adminuser/.conda/bin/pip"
-pkgs = [
-    "opencv-python-headless==4.10.0.84",
-    "mediapipe==0.10.14",
-    "tensorflow==2.17.0",
-    "keras==3.4.1",
-    "joblib",
-    "scikit-learn==1.5.0",
-]
-for pkg in pkgs:
-    subprocess.run([conda_pip, "install", "--quiet", pkg], check=False)
+
+# Check if cv2 is available, if not install and restart
+try:
+    import cv2
+except ImportError:
+    pkgs = [
+        "opencv-python-headless==4.10.0.84",
+        "mediapipe==0.10.14",
+        "tensorflow==2.17.0",
+        "keras==3.4.1",
+        "joblib",
+        "scikit-learn==1.5.0",
+    ]
+    for pkg in pkgs:
+        subprocess.run([conda_pip, "install", "--quiet", pkg], check=False)
+    # Restart the Python process so imports pick up newly installed packages
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 import streamlit as st
 import cv2
