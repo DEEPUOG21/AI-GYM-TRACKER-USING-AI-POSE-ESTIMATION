@@ -7,8 +7,7 @@ try:
 except ImportError:
     import subprocess, sys
     subprocess.run([sys.executable, "-m", "pip", "install",
-                    "opencv-python-headless==4.8.0.76"], check=False)
-    # Add user site-packages to path so cv2 can be found
+                    "numpy==1.26.4", "opencv-python-headless==4.8.0.76"], check=False)
     import site
     sys.path.insert(0, site.getusersitepackages())
     import cv2
