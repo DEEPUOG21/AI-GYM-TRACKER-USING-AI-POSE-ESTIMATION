@@ -1,27 +1,39 @@
 import sys
 import site
+import subprocess
 
 # Add user site-packages to path first so ALL pip-installed packages are found
 user_site = site.getusersitepackages()
 if user_site not in sys.path:
     sys.path.insert(0, user_site)
 
+# Ensure cv2 is installed and importable
+try:
+    import cv2
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install",
+                    "opencv-python-headless==4.8.0.76"], check=False)
+    if user_site not in sys.path:
+        sys.path.insert(0, user_site)
+    import cv2
+
+# Ensure mediapipe is installed and importable
+try:
+    import mediapipe
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install",
+                    "mediapipe==0.10.14"], check=False)
+
 import streamlit as st
-# from Audio import text_to_speech, get_audio
 import tempfile
-import cv2
 import ExerciseAiTrainer as exercise
 from chatbot import chat_ui
 import time
 
 def main():
-    # Set configuration for the theme before any other Streamlit command
     st.set_page_config(page_title='Fitness AI Coach', layout='centered')
-    
-    # Define App Title and Structure
     st.title('Fitness AI Coach')
 
-    # 2 Options: Video, WebCam, Auto Classify, chatbot
     options = st.sidebar.selectbox('Select Option', ('Video', 'WebCam', 'Auto Classify', 'chatbot'))
 
     if options == 'chatbot':
@@ -29,24 +41,20 @@ def main():
         st.markdown("The chatbot can make mistakes. Check important info.")
         chat_ui()
 
-    # Define Operations if Video Option is selected
     if options == 'Video':
         st.markdown('-------')
-
         st.write('## Upload your video and select the correct type of Exercise to count repetitions')
         st.write("")
         st.write('Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.')
 
         st.sidebar.markdown('-------')
 
-        # User can select different types of exercise
         exercise_options = st.sidebar.selectbox(
             'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
         )
 
         st.sidebar.markdown('-------')
 
-        # User can upload a video:
         video_file_buffer = st.sidebar.file_uploader("Upload a video", type=["mp4", "mov", 'avi', 'asf', 'm4v'])
         tfflie = tempfile.NamedTemporaryFile(delete=False)
 
@@ -57,7 +65,6 @@ def main():
             st.warning("Please upload a video to proceed.")
             return
 
-        # Visualize Video before analysis
         st.sidebar.text('Input Video')
         st.sidebar.video(tfflie.name)
 
@@ -66,7 +73,6 @@ def main():
 
         st.markdown('-------')
 
-        # Visualize Video after analysis (analysis based on the selected exercise)
         st.markdown(' ## Output Video')
         if exercise_options == 'Bicept Curl':
             exer = exercise.Exercise()
@@ -88,8 +94,7 @@ def main():
             exer = exercise.Exercise()
             counter, stage = 0, None
             exer.shoulder_press(cap, is_video=True, counter=counter, stage=stage)
-    
-    # Added new section for Auto Classify
+
     elif options == 'Auto Classify':
         st.markdown('-------')
         st.write('Click button to start automatic exercise classification and repetition counting')
@@ -102,18 +107,14 @@ def main():
             exer = exercise.Exercise()
             exer.auto_classify_and_count()
 
-    # Define Operation if webcam option is selected
     elif options == 'WebCam':
         st.markdown('-------')
-
         st.sidebar.markdown('-------')
 
-        # User can select different exercises
         exercise_general = st.sidebar.selectbox(
             'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
         )
 
-        # New button for direct activation
         st.write(' Click button to start training')
         start_button = st.button('Start Exercise')
 
