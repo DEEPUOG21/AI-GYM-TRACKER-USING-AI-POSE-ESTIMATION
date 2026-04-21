@@ -1,117 +1,12 @@
 import streamlit as st
-import cv2
-import tempfile
-import ExerciseAiTrainer as exercise
-from chatbot import chat_ui
-import time
+import sys
 
-def main():
-    st.set_page_config(page_title='Fitness AI Coach', layout='centered')
-    st.title('Fitness AI Coach')
+# Debug: show what's in sys.path and if cv2 exists anywhere
+import subprocess
+result = subprocess.run(["pip", "show", "opencv-python-headless"], capture_output=True, text=True)
+st.code(result.stdout or result.stderr)
 
-    options = st.sidebar.selectbox('Select Option', ('Video', 'WebCam', 'Auto Classify', 'chatbot'))
-
-    if options == 'chatbot':
-        st.markdown('-------')
-        st.markdown("The chatbot can make mistakes. Check important info.")
-        chat_ui()
-
-    if options == 'Video':
-        st.markdown('-------')
-        st.write('## Upload your video and select the correct type of Exercise to count repetitions')
-        st.write("")
-        st.write('Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.')
-        st.sidebar.markdown('-------')
-        exercise_options = st.sidebar.selectbox(
-            'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
-        )
-        st.sidebar.markdown('-------')
-        video_file_buffer = st.sidebar.file_uploader("Upload a video", type=["mp4", "mov", 'avi', 'asf', 'm4v'])
-        tfflie = tempfile.NamedTemporaryFile(delete=False)
-        if video_file_buffer is not None:
-            tfflie.write(video_file_buffer.read())
-            cap = cv2.VideoCapture(tfflie.name)
-        else:
-            st.warning("Please upload a video to proceed.")
-            return
-        st.sidebar.text('Input Video')
-        st.sidebar.video(tfflie.name)
-        st.markdown('## Input Video')
-        st.video(tfflie.name)
-        st.markdown('-------')
-        st.markdown(' ## Output Video')
-        if exercise_options == 'Bicept Curl':
-            exer = exercise.Exercise()
-            counter, stage_right, stage_left = 0, None, None
-            exer.bicept_curl(cap, is_video=True, counter=counter, stage_right=stage_right, stage_left=stage_left)
-        elif exercise_options == 'Push Up':
-            st.write("The exercise need to be filmed showing your left side or facing frontally")
-            exer = exercise.Exercise()
-            counter, stage = 0, None
-            exer.push_up(cap, is_video=True, counter=counter, stage=stage)
-        elif exercise_options == 'Squat':
-            exer = exercise.Exercise()
-            counter, stage = 0, None
-            exer.squat(cap, is_video=True, counter=counter, stage=stage)
-        elif exercise_options == 'Shoulder Press':
-            exer = exercise.Exercise()
-            counter, stage = 0, None
-            exer.shoulder_press(cap, is_video=True, counter=counter, stage=stage)
-
-    elif options == 'Auto Classify':
-        st.markdown('-------')
-        st.write('Click button to start automatic exercise classification and repetition counting')
-        st.markdown('-------')
-        st.write("Please ensure you are clearly visible and facing the camera directly. This will help the AI accurately track your movements.")
-        auto_classify_button = st.button('Start Auto Classification')
-        if auto_classify_button:
-            time.sleep(2)
-            exer = exercise.Exercise()
-            exer.auto_classify_and_count()
-
-    elif options == 'WebCam':
-        st.markdown('-------')
-        st.sidebar.markdown('-------')
-        exercise_general = st.sidebar.selectbox(
-            'Select Exercise', ('Bicept Curl', 'Push Up', 'Squat', 'Shoulder Press')
-        )
-        st.write(' Click button to start training')
-        start_button = st.button('Start Exercise')
-        if start_button:
-            time.sleep(2)
-            ready = True
-            if exercise_general == 'Bicept Curl':
-                while ready:
-                    cap = cv2.VideoCapture(0)
-                    exer = exercise.Exercise()
-                    counter, stage_right, stage_left = 0, None, None
-                    exer.bicept_curl(cap, counter=counter, stage_right=stage_right, stage_left=stage_left)
-                    break
-            elif exercise_general == 'Push Up':
-                while ready:
-                    cap = cv2.VideoCapture(0)
-                    exer = exercise.Exercise()
-                    counter, stage = 0, None
-                    exer.push_up(cap, counter=counter, stage=stage)
-                    break
-            elif exercise_general == 'Squat':
-                while ready:
-                    cap = cv2.VideoCapture(0)
-                    exer = exercise.Exercise()
-                    counter, stage = 0, None
-                    exer.squat(cap, counter=counter, stage=stage)
-                    break
-            elif exercise_general == 'Shoulder Press':
-                while ready:
-                    cap = cv2.VideoCapture(0)
-                    exer = exercise.Exercise()
-                    counter, stage = 0, None
-                    exer.shoulder_press(cap, counter=counter, stage=stage)
-                    break
-
-if __name__ == '__main__':
-    def load_css():
-        with open("static/styles.css", "r") as f:
-            css = f"<style>{f.read()}</style>"
-            st.markdown(css, unsafe_allow_html=True)
-    main()
+result2 = subprocess.run(["find", "/", "-name", "cv2*", "-type", "f", "2>/dev/null"], 
+                          capture_output=True, text=True, timeout=10)
+st.code(result2.stdout[:3000])
+st.code("\n".join(sys.path))
