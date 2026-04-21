@@ -1,37 +1,5 @@
-import sys
-import site
-import subprocess
-import os
-
-# Add user site-packages to front of path BEFORE any installs
-user_site = site.getusersitepackages()
-if user_site not in sys.path:
-    sys.path.insert(0, user_site)
-
-# Install all packages to user site-packages
-pkgs = [
-    "numpy==1.26.4",
-    "opencv-python-headless==4.8.0.76",
-    "mediapipe==0.10.14",
-    "joblib",
-    "scikit-learn==1.5.0",
-    "tensorflow==2.15.0",
-    "keras==2.15.0",
-    "openai==1.30.1",
-    "python-dotenv==1.0.1",
-    "pandas==2.2.2",
-    "protobuf==4.25.3",
-]
-for pkg in pkgs:
-    subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", pkg], check=False)
-
-# Remove stale numpy from sys.modules so fresh one loads from user_site
-for mod in list(sys.modules.keys()):
-    if mod == "numpy" or mod.startswith("numpy."):
-        del sys.modules[mod]
-
-import cv2
 import streamlit as st
+import cv2
 import tempfile
 import ExerciseAiTrainer as exercise
 from chatbot import chat_ui
