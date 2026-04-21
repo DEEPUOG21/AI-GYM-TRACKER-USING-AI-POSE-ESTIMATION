@@ -6,6 +6,7 @@ import os
 # Step 1: Install numpy and cv2 to user site-packages
 subprocess.run([sys.executable, "-m", "pip", "install", "numpy==1.26.4"], check=False)
 subprocess.run([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.8.0.76"], check=False)
+subprocess.run([sys.executable, "-m", "pip", "install", "mediapipe==0.10.14"], check=False)
 
 # Step 2: Force user site-packages to front of sys.path BEFORE any numpy import
 user_site = site.getusersitepackages()
