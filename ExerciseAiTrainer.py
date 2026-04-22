@@ -233,8 +233,13 @@ class Exercise:
         return landmarks
     
     def visualize_angle(self, img, angle, landmark):
+        # landmark is already in pixel coords from find_landmarks()
+        cx, cy = int(landmark[0]), int(landmark[1])
+        h, w = img.shape[:2]
+        cx = max(0, min(cx, w - 1))
+        cy = max(0, min(cy, h - 1))
         cv2.putText(img, str(int(angle)),
-                    tuple(np.multiply(landmark, [640, 480]).astype(int)),
+                    (cx, cy),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 
     # Auto classify and count method with repetition counting logic
@@ -362,12 +367,7 @@ class Exercise:
         
         return False
 
-    # Visualize the angle between 3 point on screen
-    def visualize_angle(self, img, angle, landmark):
-            cv2.putText(img, str(angle),
-                        tuple(np.multiply(landmark, [640, 480]).astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                        )
+    # Visualize the angle between 3 point on screen (duplicate removed - see above)
 
     # Visualize repetitions of the exercise on screen
     def repetitions_counter(self, img, counter):
@@ -443,10 +443,6 @@ class Exercise:
                         break
 
                 self.repetitions_counter(img, counter)
-
-                # Show live preview every 10 frames
-                if frame_count % 10 == 0:
-                    stframe.image(img, channels='BGR', use_column_width=True)
 
                 out.write(img)
 
