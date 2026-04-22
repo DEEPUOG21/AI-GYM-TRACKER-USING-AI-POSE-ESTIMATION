@@ -1,4 +1,3 @@
-
 import cv2
 import PoseModule2 as pm
 import numpy as np
@@ -68,18 +67,20 @@ def draw_styled_text(frame, text, position, font=cv2.FONT_HERSHEY_SIMPLEX, font_
 def count_repetition_push_up(detector, img, landmark_list, stage, counter, exercise_instance):
     right_arm_angle = detector.find_angle(img, 12, 14, 16)
     right_shoulder = landmark_list[12][1:]
-    right_wrist = landmark_list[16][1:]
     left_arm_angle = detector.find_angle(img, 11, 13, 15)
     left_shoulder = landmark_list[11][1:]
     exercise_instance.visualize_angle(img, right_arm_angle, right_shoulder)
     exercise_instance.visualize_angle(img, left_arm_angle, left_shoulder)
 
-    if left_arm_angle < 220:
+    # DOWN: arms bent (angle < 90 or reflex > 270)
+    if left_arm_angle < 90 or left_arm_angle > 270:
         stage = "down"
-    if left_arm_angle > 240 and stage == "down":
+    # UP: arms extended (~160-200)
+    if (left_arm_angle > 150 and left_arm_angle < 210) and stage == "down":
         stage = "up"
         counter += 1
     
+    exercise_instance.repetitions_counter(img, counter, stage=stage, angle=left_arm_angle)
     return stage, counter
 
 
@@ -90,12 +91,15 @@ def count_repetition_squat(detector, img, landmark_list, stage, counter, exercis
     right_leg = landmark_list[26][1:]
     exercise_instance.visualize_angle(img, right_leg_angle, right_leg)
 
-    if right_leg_angle > 160 and left_leg_angle < 220:
+    # DOWN: knees bent (angle < 120)
+    if right_leg_angle < 120:
         stage = "down"
-    if right_leg_angle < 140 and left_leg_angle > 210 and stage == "down":
+    # UP: legs extended (angle > 160)
+    if right_leg_angle > 160 and stage == "down":
         stage = "up"
         counter += 1
-    
+
+    exercise_instance.repetitions_counter(img, counter, stage=stage, angle=right_leg_angle)
     return stage, counter
 
 def count_repetition_bicep_curl(detector, img, landmark_list, stage_right, stage_left, counter, exercise_instance):
@@ -104,16 +108,20 @@ def count_repetition_bicep_curl(detector, img, landmark_list, stage_right, stage
     exercise_instance.visualize_angle(img, right_arm_angle, landmark_list[14][1:])
     exercise_instance.visualize_angle(img, left_arm_angle, landmark_list[13][1:])
 
-    if right_arm_angle > 160 and right_arm_angle < 200:
+    # ARM DOWN: elbow extended (~160-200 degrees)
+    if right_arm_angle > 150 and right_arm_angle < 210:
         stage_right = "down"
-    if left_arm_angle < 200 and left_arm_angle > 140:
+    if left_arm_angle > 150 and left_arm_angle < 210:
         stage_left = "down"
     
-    if stage_right == "down" and (right_arm_angle > 310 or right_arm_angle < 60) and (left_arm_angle > 310 or left_arm_angle < 60) and stage_left == "down":
-        stage_right = "up"
-        stage_left = "up"
-        counter += 1
+    # ARM UP: elbow flexed (~40-90 degrees or >300 reflex)
+    if stage_right == "down" and stage_left == "down":
+        if (right_arm_angle < 90 or right_arm_angle > 300) and (left_arm_angle < 90 or left_arm_angle > 300):
+            stage_right = "up"
+            stage_left = "up"
+            counter += 1
     
+    exercise_instance.repetitions_counter(img, counter, stage=stage_right, angle=right_arm_angle)
     return stage_right, stage_left, counter
 
 def count_repetition_shoulder_press(detector, img, landmark_list, stage, counter, exercise_instance):
@@ -122,12 +130,15 @@ def count_repetition_shoulder_press(detector, img, landmark_list, stage, counter
     right_elbow = landmark_list[14][1:]
     exercise_instance.visualize_angle(img, right_arm_angle, right_elbow)
 
-    if right_arm_angle > 280 and left_arm_angle < 80:
+    # DOWN: arms lowered, elbows bent (~70-110 degrees)
+    if right_arm_angle > 60 and right_arm_angle < 120:
         stage = "down"
-    if right_arm_angle < 240 and left_arm_angle > 120 and stage == "down":
+    # UP: arms extended overhead (~150-200 degrees)
+    if right_arm_angle > 150 and stage == "down":
         stage = "up"
         counter += 1
-    
+
+    exercise_instance.repetitions_counter(img, counter, stage=stage, angle=right_arm_angle)
     return stage, counter
 
 
@@ -370,7 +381,7 @@ class Exercise:
     # Visualize the angle between 3 point on screen (duplicate removed - see above)
 
     # Visualize repetitions of the exercise on screen
-    def repetitions_counter(self, img, counter):
+    def repetitions_counter(self, img, counter, stage=None, angle=None):
         cv2.rectangle(img, (0, 0), (225, 73), (245, 117, 16), -1)
 
         # Rep data
@@ -379,6 +390,12 @@ class Exercise:
         cv2.putText(img, str(counter),
                     (10, 60),
                     cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 2, cv2.LINE_AA)
+        if stage:
+            cv2.putText(img, f'STAGE: {stage}', (15, 85),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
+        if angle is not None:
+            cv2.putText(img, f'ANGLE: {int(angle)}', (15, 105),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,255), 1, cv2.LINE_AA)
 
     # Define push-up method
     def push_up(self, cap, is_video=False, counter=0, stage=None):
