@@ -1,4 +1,5 @@
 import os
+import httpx
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -13,9 +14,13 @@ def get_client():
         st.error("OPENROUTER_API_KEY not set.")
         st.stop()
 
+    # Create httpx client explicitly to avoid proxies conflict
+    http_client = httpx.Client()
+
     return OpenAI(
         api_key=api_key,
-        base_url="https://openrouter.ai/api/v1"
+        base_url="https://openrouter.ai/api/v1",
+        http_client=http_client
     )
 
 
@@ -46,7 +51,7 @@ def chat_ui():
             st.write(prompt)
 
         response = client.chat.completions.create(
-            model="openai/gpt-4o-mini",   # OpenRouter model format
+            model="openai/gpt-4o-mini",
             messages=st.session_state.messages
         )
 
