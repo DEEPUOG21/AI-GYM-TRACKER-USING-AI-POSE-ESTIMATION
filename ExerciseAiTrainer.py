@@ -400,64 +400,69 @@ class Exercise:
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
+            import tempfile, os
             stframe = st.empty()
+            status_text = st.empty()
             detector = pm.posture_detector()
 
-            # Get the original video's FPS
-            original_fps = cap.get(cv2.CAP_PROP_FPS)
-            frame_time = 1 / original_fps
+            original_fps = cap.get(cv2.CAP_PROP_FPS) or 30
+            width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            frame_count = 0
-            start_time = time.time()
-            last_update_time = start_time
-
-            update_interval = 0.1  # Update display every 100ms
+            # Collect all processed frames in memory
+            frames = []
+            status_text.text("Processing video... please wait.")
 
             while cap.isOpened():
-                current_time = time.time()
-                elapsed_time = current_time - start_time
-
-                # Determine how many frames should have been processed by now
-                target_frame = int(elapsed_time * original_fps)
-
-                # Process frames until we catch up to where we should be
-                while frame_count < target_frame:
-                    ret, frame = cap.read()
-                    if not ret:
-                        print("End of video.")
-                        return
-
-                    frame_count += 1
-
-                    # Process the last frame we read
-                    if frame_count == target_frame:
-                        img = detector.find_person(frame)
-                        landmark_list = detector.find_landmarks(img, draw=False)
-
-                        if len(landmark_list) != 0:
-                            if multi_stage:
-                                stage_right, stage_left, counter = count_repetition_function(detector, img, landmark_list, stage_right, stage_left, counter, self)
-                            else:
-                                stage, counter = count_repetition_function(detector, img, landmark_list, stage, counter, self)
-
-                            if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
-                                return
-
-                        self.repetitions_counter(img, counter)
-
-                # Update display at regular intervals
-                if current_time - last_update_time >= update_interval:
-                    stframe.image(img, channels='BGR', use_column_width=True)
-                    last_update_time = current_time
-
-                # Small sleep to prevent busy-waiting
-                time.sleep(0.001)
-
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                ret, frame = cap.read()
+                if not ret:
                     break
+
+                img = detector.find_person(frame)
+                landmark_list = detector.find_landmarks(img, draw=False)
+
+                if len(landmark_list) != 0:
+                    if multi_stage:
+                        stage_right, stage_left, counter = count_repetition_function(detector, img, landmark_list, stage_right, stage_left, counter, self)
+                    else:
+                        stage, counter = count_repetition_function(detector, img, landmark_list, stage, counter, self)
+
+                    if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
+                        break
+
+                self.repetitions_counter(img, counter)
+                frames.append(img.copy())
 
             cap.release()
             cv2.destroyAllWindows()
+
+            if not frames:
+                status_text.text("No frames processed.")
+                return
+
+            status_text.text("Encoding output video...")
+
+            # Write to temp file and re-encode with ffmpeg for browser compatibility
+            raw_path = tempfile.mktemp(suffix='_raw.mp4')
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+
+            out = cv2.VideoWriter(raw_path, cv2.VideoWriter_fourcc(*'mp4v'), original_fps, (width, height))
+            for f in frames:
+                out.write(f)
+            out.release()
+
+            # Re-encode to H264 with browser-compatible settings
+            os.system(f"ffmpeg -y -i {raw_path} -vcodec libx264 -pix_fmt yuv420p -movflags +faststart {out_path} 2>/dev/null")
+
+            status_text.text("Done! Showing output video.")
+            stframe.empty()
+
+            if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                st.video(out_path)
+            else:
+                st.warning("Could not encode video for browser. Showing raw frames.")
+                for f in frames[::10]:
+                    st.image(f, channels="BGR", use_column_width=True)
         else:
             # Original webcam exercise code
             stframe = st.empty()
