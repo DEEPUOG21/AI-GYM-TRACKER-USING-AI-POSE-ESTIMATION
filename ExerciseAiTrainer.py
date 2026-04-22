@@ -1,4 +1,3 @@
-
 import cv2
 import PoseModule2 as pm
 import numpy as np
@@ -401,64 +400,64 @@ class Exercise:
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
-            stframe = st.empty()
+            import tempfile, os, subprocess
+            status_text = st.empty()
             detector = pm.posture_detector()
 
-            # Get the original video's FPS
-            original_fps = cap.get(cv2.CAP_PROP_FPS)
-            frame_time = 1 / original_fps
+            original_fps = cap.get(cv2.CAP_PROP_FPS) or 30
+            width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            frame_count = 0
-            start_time = time.time()
-            last_update_time = start_time
-
-            update_interval = 0.1  # Update display every 100ms
+            frames = []
+            status_text.text("Processing video... please wait.")
 
             while cap.isOpened():
-                current_time = time.time()
-                elapsed_time = current_time - start_time
-
-                # Determine how many frames should have been processed by now
-                target_frame = int(elapsed_time * original_fps)
-
-                # Process frames until we catch up to where we should be
-                while frame_count < target_frame:
-                    ret, frame = cap.read()
-                    if not ret:
-                        print("End of video.")
-                        return
-
-                    frame_count += 1
-
-                    # Process the last frame we read
-                    if frame_count == target_frame:
-                        img = detector.find_person(frame)
-                        landmark_list = detector.find_landmarks(img, draw=False)
-
-                        if len(landmark_list) != 0:
-                            if multi_stage:
-                                stage_right, stage_left, counter = count_repetition_function(detector, img, landmark_list, stage_right, stage_left, counter, self)
-                            else:
-                                stage, counter = count_repetition_function(detector, img, landmark_list, stage, counter, self)
-
-                            if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
-                                return
-
-                        self.repetitions_counter(img, counter)
-
-                # Update display at regular intervals
-                if current_time - last_update_time >= update_interval:
-                    stframe.image(img, channels='BGR', use_column_width=True)
-                    last_update_time = current_time
-
-                # Small sleep to prevent busy-waiting
-                time.sleep(0.001)
-
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                ret, frame = cap.read()
+                if not ret:
                     break
+
+                img = detector.find_person(frame)
+                landmark_list = detector.find_landmarks(img, draw=False)
+
+                if len(landmark_list) != 0:
+                    if multi_stage:
+                        stage_right, stage_left, counter = count_repetition_function(detector, img, landmark_list, stage_right, stage_left, counter, self)
+                    else:
+                        stage, counter = count_repetition_function(detector, img, landmark_list, stage, counter, self)
+
+                    if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
+                        break
+
+                self.repetitions_counter(img, counter)
+                # Convert BGR to RGB for imageio
+                frames.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
             cap.release()
             cv2.destroyAllWindows()
+
+            if not frames:
+                status_text.text("No frames processed.")
+                return
+
+            status_text.text("Encoding output video...")
+
+            try:
+                import imageio
+                out_path = tempfile.mktemp(suffix='_out.mp4')
+                writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264', 
+                                           output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart'])
+                for f in frames:
+                    writer.append_data(f)
+                writer.close()
+                status_text.text("Done!")
+                st.video(out_path)
+            except Exception as e:
+                st.error(f"Encoding failed: {e}")
+                status_text.text("Showing frames as slideshow instead.")
+                stframe = st.empty()
+                for f in frames:
+                    stframe.image(f, channels="RGB", use_column_width=True)
+                    time.sleep(1/original_fps)
         else:
             # Original webcam exercise code
             stframe = st.empty()
