@@ -459,25 +459,28 @@ class Exercise:
                     if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
                         break
 
-                self.repetitions_counter(img, counter)
-
                 out.write(img)
 
             cap.release()
             out.release()
             cv2.destroyAllWindows()
 
-            progress_text.text("Processing complete!")
-            stframe.empty()
+            progress_text.text("Re-encoding for browser...")
 
             # Re-encode to H264 for browser compatibility
             h264_path = out_path.replace('.mp4', '_h264.mp4')
-            os.system(f"ffmpeg -y -i {out_path} -vcodec libx264 -acodec aac {h264_path} 2>/dev/null")
+            ret = os.system(f"ffmpeg -y -i {out_path} -vcodec libx264 -pix_fmt yuv420p -acodec aac {h264_path}")
+
+            progress_text.text("Processing complete!")
 
             if os.path.exists(h264_path) and os.path.getsize(h264_path) > 0:
-                st.video(h264_path)
+                with open(h264_path, 'rb') as f:
+                    video_bytes = f.read()
+                st.video(video_bytes)
             else:
-                st.video(out_path)
+                with open(out_path, 'rb') as f:
+                    video_bytes = f.read()
+                st.video(video_bytes)
         else:
             # Original webcam exercise code
             stframe = st.empty()
