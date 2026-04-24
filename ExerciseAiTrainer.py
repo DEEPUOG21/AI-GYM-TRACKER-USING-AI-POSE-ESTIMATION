@@ -444,13 +444,24 @@ class Exercise:
             try:
                 import imageio
                 out_path = tempfile.mktemp(suffix='_out.mp4')
-                writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264', 
-                                           output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart'])
+                writer = imageio.get_writer(
+                    out_path,
+                    fps=original_fps,
+                    codec='libx264',
+                    output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart']
+                )
                 for f in frames:
                     writer.append_data(f)
                 writer.close()
-                status_text.text("Done!")
-                st.video(out_path)
+
+                with open(out_path, "rb") as output_file:
+                    output_video_bytes = output_file.read()
+
+                if output_video_bytes:
+                    status_text.text("Done!")
+                    st.video(output_video_bytes, format="video/mp4")
+                else:
+                    raise ValueError("Encoded output video file is empty.")
             except Exception as e:
                 st.error(f"Encoding failed: {e}")
                 status_text.text("Showing frames as slideshow instead.")
