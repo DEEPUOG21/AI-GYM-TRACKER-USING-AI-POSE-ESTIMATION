@@ -2,7 +2,6 @@ import os
 import httpx
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
 
@@ -14,20 +13,13 @@ def get_client():
         st.error("OPENROUTER_API_KEY not set.")
         st.stop()
 
-    # Create httpx client explicitly to avoid proxies conflict
-    http_client = httpx.Client()
-
-    return OpenAI(
-        api_key=api_key,
-        base_url="https://openrouter.ai/api/v1",
-        http_client=http_client
-    )
+    return api_key
 
 
 def chat_ui():
     st.title("💪 AI Fitness Trainer")
 
-    client = get_client()
+    api_key = get_client()
 
     if "messages" not in st.session_state:
         st.session_state.messages = [
@@ -50,12 +42,23 @@ def chat_ui():
         with st.chat_message("user"):
             st.write(prompt)
 
-        response = client.chat.completions.create(
-            model="openai/gpt-4o-mini",
-            messages=st.session_state.messages
+        # 🔥 Direct OpenRouter API call (no openai lib)
+        response = httpx.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "openai/gpt-4o-mini",
+                "messages": st.session_state.messages,
+            },
+            timeout=30.0
         )
 
-        reply = response.choices[0].message.content
+        result = response.json()
+
+        reply = result["choices"][0]["message"]["content"]
 
         st.session_state.messages.append(
             {"role": "assistant", "content": reply}
