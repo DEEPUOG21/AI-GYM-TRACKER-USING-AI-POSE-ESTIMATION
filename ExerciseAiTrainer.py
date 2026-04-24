@@ -82,7 +82,6 @@ def count_repetition_push_up(detector, img, landmark_list, stage, counter, exerc
     return stage, counter
 
 
-
 def count_repetition_squat(detector, img, landmark_list, stage, counter, exercise_instance):
     right_leg_angle = detector.find_angle(img, 24, 26, 28)
     left_leg_angle = detector.find_angle(img, 23, 25, 27)
@@ -128,7 +127,6 @@ def count_repetition_shoulder_press(detector, img, landmark_list, stage, counter
         counter += 1
     
     return stage, counter
-
 
 
 # Define the class that handles the analysis of the exercises
@@ -294,11 +292,11 @@ class Exercise:
                 frame_count = 0
 
             # Repetition counting logic based on current prediction
-            detector.find_person(frame, draw=True)  # Ensuring landmarks are drawn on the frame
-            landmark_list = detector.find_landmarks(frame, draw=True)  # Change draw=False to draw=True
+            detector.find_person(frame, draw=True)
+            landmark_list = detector.find_landmarks(frame, draw=True)
             if len(landmark_list) > 0:
                 if self.are_hands_joined(landmark_list, stop=True):
-                    break  # Stop if hands are joined
+                    break
 
                 if current_prediction == 'push-up':
                     stages['push_up'], counters['push_up'] = count_repetition_push_up(detector, frame, landmark_list, stages['push_up'], counters['push_up'], self)
@@ -333,8 +331,8 @@ class Exercise:
             text_size, _ = cv2.getTextSize(f"Exercise: {short_name}", cv2.FONT_HERSHEY_SIMPLEX, 1.5, 2)
             draw_styled_text(frame, f"Exercise: {short_name}", ((width - 290) // 2 + 100, 20))
 
-            for idx, (exercise, count) in enumerate(counters.items()):
-                short_name = exercise_name_map.get(exercise, exercise)
+            for idx, (exercise_key, count) in enumerate(counters.items()):
+                short_name = exercise_name_map.get(exercise_key, exercise_key)
                 draw_styled_text(frame, f"{short_name}: {count}", (10, (idx + 1) * vertical_spacing))
 
             stframe.image(frame, channels='BGR', use_column_width=True)
@@ -347,13 +345,10 @@ class Exercise:
     
     # Check if hands are joined together in a 'prayer' gesture
     def are_hands_joined(self, landmark_list, stop, is_video=False):
-        # Extract wrist coordinates
-        left_wrist = landmark_list[15][1:]  # (x, y) for left wrist
-        right_wrist = landmark_list[16][1:]  # (x, y) for right wrist
+        left_wrist = landmark_list[15][1:]
+        right_wrist = landmark_list[16][1:]
 
-        # Calculate the Euclidean distance between the wrists
         distance = np.linalg.norm(np.array(left_wrist) - np.array(right_wrist))
-        # Consider hands joined if the distance is below a certain threshold, e.g., 50 pixels
         if distance < 30 and not is_video:
             print("JOINED HANDS")
             stop = True
@@ -361,18 +356,10 @@ class Exercise:
         
         return False
 
-    # Visualize the angle between 3 point on screen
-    def visualize_angle(self, img, angle, landmark):
-            cv2.putText(img, str(angle),
-                        tuple(np.multiply(landmark, [640, 480]).astype(int)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                        )
-
     # Visualize repetitions of the exercise on screen
     def repetitions_counter(self, img, counter):
         cv2.rectangle(img, (0, 0), (225, 73), (245, 117, 16), -1)
 
-        # Rep data
         cv2.putText(img, 'REPS', (15, 12),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
         cv2.putText(img, str(counter),
@@ -395,8 +382,6 @@ class Exercise:
     def shoulder_press(self, cap, is_video=False, counter=0, stage=None):
         self.exercise_method(cap, is_video, count_repetition_shoulder_press, counter=counter, stage=stage)
 
-    # Generic exercise method
-    # Generic exercise method
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
@@ -440,8 +425,6 @@ class Exercise:
 
             status_text.text(f"Encoding {len(frames)} frames...")
 
-            import subprocess, sys
-            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "imageio==2.34.0", "imageio-ffmpeg==0.5.1"], check=False)
             import imageio
             out_path = tempfile.mktemp(suffix='_out.mp4')
             writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264',
