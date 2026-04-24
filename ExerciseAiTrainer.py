@@ -440,6 +440,8 @@ class Exercise:
 
             status_text.text(f"Encoding {len(frames)} frames...")
 
+            import subprocess, sys
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "imageio==2.34.0", "imageio-ffmpeg==0.5.1"], check=False)
             import imageio
             out_path = tempfile.mktemp(suffix='_out.mp4')
             writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264',
