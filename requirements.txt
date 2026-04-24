@@ -14,3 +14,4 @@ imageio-ffmpeg==0.5.1
 streamlit-webrtc==0.45.0
 python-dotenv
 httpx
+openai==1.30.1
