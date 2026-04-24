@@ -1,3 +1,9 @@
+import subprocess, sys
+
+# Install imageio into conda env so ExerciseAiTrainer can use it
+subprocess.run(["/home/adminuser/.conda/bin/pip", "install", "-q",
+                "imageio==2.34.0", "imageio-ffmpeg==0.5.1"], check=False)
+
 import streamlit as st
 import cv2
 import tempfile
