@@ -1,10 +1,14 @@
 import subprocess, sys
 
 # Install required packages into conda env
-subprocess.run(["/home/adminuser/.conda/bin/pip", "install", "-q",
-                "imageio==2.34.0", "imageio-ffmpeg==0.5.1",
-                "streamlit-webrtc==0.47.1", "av==11.0.0",
-                "aiortc==1.9.0", "aioice==0.9.0"], check=False)
+# Install into conda env
+conda_pip = "/home/adminuser/.conda/bin/pip"
+subprocess.run([conda_pip, "install", "-q",
+                "imageio==2.34.0", "imageio-ffmpeg==0.5.1"], check=False)
+subprocess.run([conda_pip, "install", "-q",
+                "av", "streamlit-webrtc==0.47.1"], check=False)
+subprocess.run([conda_pip, "install", "-q",
+                "opencv-python-headless==4.9.0.80"], check=False)
 
 import streamlit as st
 import cv2
