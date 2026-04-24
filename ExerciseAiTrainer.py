@@ -400,7 +400,7 @@ class Exercise:
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
-            import tempfile, os, subprocess
+            import tempfile, os
             status_text = st.empty()
             detector = pm.posture_detector()
 
@@ -429,7 +429,6 @@ class Exercise:
                         break
 
                 self.repetitions_counter(img, counter)
-                # Convert BGR to RGB for imageio
                 frames.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
             cap.release()
@@ -439,36 +438,25 @@ class Exercise:
                 status_text.text("No frames processed.")
                 return
 
-            status_text.text("Encoding output video...")
+            status_text.text(f"Encoding {len(frames)} frames...")
 
-            try:
-                import imageio
-                out_path = tempfile.mktemp(suffix='_out.mp4')
-                writer = imageio.get_writer(
-                    out_path,
-                    fps=original_fps,
-                    codec='libx264',
-                    output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart']
-                )
-                for f in frames:
-                    writer.append_data(f)
-                writer.close()
+            import imageio
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+            writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264',
+                                       macro_block_size=1,
+                                       output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart'])
+            for f in frames:
+                writer.append_data(f)
+            writer.close()
 
-                with open(out_path, "rb") as output_file:
-                    output_video_bytes = output_file.read()
+            file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
+            status_text.text(f"Done! File size: {file_size} bytes. Loading video...")
 
-                if output_video_bytes:
-                    status_text.text("Done!")
-                    st.video(output_video_bytes, format="video/mp4")
-                else:
-                    raise ValueError("Encoded output video file is empty.")
-            except Exception as e:
-                st.error(f"Encoding failed: {e}")
-                status_text.text("Showing frames as slideshow instead.")
-                stframe = st.empty()
-                for f in frames:
-                    stframe.image(f, channels="RGB", use_column_width=True)
-                    time.sleep(1/original_fps)
+            if file_size > 0:
+                st.video(out_path)
+            else:
+                status_text.text("Video encoding failed - showing last frame only.")
+                st.image(frames[-1], channels="RGB", use_column_width=True)
         else:
             # Original webcam exercise code
             stframe = st.empty()
