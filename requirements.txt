@@ -11,7 +11,6 @@ protobuf==3.20.3
 h5py==3.8.0
 imageio==2.34.0
 imageio-ffmpeg==0.5.1
-streamlit-webrtc==0.47.1
-av==10.0.0
+streamlit-webrtc==0.45.0
 python-dotenv
 httpx
