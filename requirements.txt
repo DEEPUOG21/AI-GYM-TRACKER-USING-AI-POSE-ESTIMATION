@@ -5,3 +5,4 @@ streamlit-webrtc==0.47.1
 imageio==2.34.0
 imageio-ffmpeg==0.5.1
 mediapipe==0.10.14
+opencv-python-headless
