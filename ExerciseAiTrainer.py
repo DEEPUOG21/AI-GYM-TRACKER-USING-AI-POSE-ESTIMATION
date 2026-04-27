@@ -437,9 +437,9 @@ class Exercise:
 
             cap.release()
             try:
-            cv2.destroyAllWindows()
-        except Exception:
-            pass  # headless environment — no GUI windows to destroy
+                cv2.destroyAllWindows()
+            except Exception:
+                pass  # headless environment — no GUI windows to destroy
 
             if not frames:
                 status_text.text("No frames processed.")
@@ -495,6 +495,6 @@ class Exercise:
 
             cap.release()
             try:
-            cv2.destroyAllWindows()
-        except Exception:
-            pass  # headless environment — no GUI windows to destroy
+                cv2.destroyAllWindows()
+            except Exception:
+                pass  # headless environment — no GUI windows to destroy
