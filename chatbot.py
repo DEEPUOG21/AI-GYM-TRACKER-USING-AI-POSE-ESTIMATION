@@ -10,8 +10,6 @@ SYSTEM_PROMPT = (
     "Help users with workouts, nutrition, form correction, and motivation."
 )
 
-# These models are free on OpenRouter (no credits needed, just an API key).
-# They are tried in order; the first successful response wins.
 FREE_MODELS = [
     "meta-llama/llama-3.3-70b-instruct:free",
     "mistralai/mistral-7b-instruct:free",
@@ -19,18 +17,29 @@ FREE_MODELS = [
 ]
 
 
-def _try_anthropic(messages: list):
-    """Call Anthropic API directly. Returns reply text or None on failure."""
+def _build_messages(session_messages: list) -> list:
+    """Return messages with system role injected as a user-prefixed first turn,
+    which all OpenRouter models accept regardless of provider quirks."""
+    # Strip any existing system messages and rebuild as pure user/assistant turns
+    turns = [m for m in session_messages if m["role"] != "system"]
+
+    # Prepend the system prompt as a priming user→assistant exchange so even
+    # models that reject the 'system' role work correctly.
+    primed = [
+        {"role": "user", "content": f"[Instructions] {SYSTEM_PROMPT}"},
+        {"role": "assistant", "content": "Understood! I'm your AI fitness trainer. How can I help you today?"},
+    ] + turns
+
+    return primed
+
+
+def _try_anthropic(session_messages: list):
+    """Call Anthropic API directly. Returns reply text or None."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         return None
 
-    anthropic_messages = [
-        {"role": m["role"], "content": m["content"]}
-        for m in messages
-        if m["role"] != "system"
-    ]
-
+    turns = [m for m in session_messages if m["role"] != "system"]
     try:
         response = httpx.post(
             "https://api.anthropic.com/v1/messages",
@@ -43,7 +52,7 @@ def _try_anthropic(messages: list):
                 "model": "claude-haiku-4-5-20251001",
                 "max_tokens": 1024,
                 "system": SYSTEM_PROMPT,
-                "messages": anthropic_messages,
+                "messages": turns,
             },
             timeout=30.0,
         )
@@ -53,12 +62,13 @@ def _try_anthropic(messages: list):
         return None
 
 
-def _try_openrouter_free(messages: list):
-    """Try each free OpenRouter model in turn. Returns (reply, error)."""
+def _try_openrouter_free(session_messages: list):
+    """Try each free OpenRouter model. Returns (reply, error)."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         return None, "OPENROUTER_API_KEY not set in environment."
 
+    messages = _build_messages(session_messages)
     last_error = "All free models failed."
 
     for model in FREE_MODELS:
@@ -68,29 +78,28 @@ def _try_openrouter_free(messages: list):
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
+                    "HTTP-Referer": "https://apex-ai-gym-tracker.streamlit.app",
+                    "X-Title": "APEX AI Gym Tracker",
                 },
                 json={
                     "model": model,
                     "messages": messages,
+                    "max_tokens": 1024,
                 },
                 timeout=30.0,
             )
 
-            if response.status_code in (429, 503):
-                # Rate-limited or unavailable — try next model
-                last_error = f"{model} unavailable ({response.status_code}), trying next..."
+            if response.status_code in (402, 429, 503):
+                last_error = f"{model} returned {response.status_code}, trying next..."
                 continue
 
-            if response.status_code == 402:
-                # Paid model slipped in — skip
-                last_error = f"{model} requires credits, trying next..."
+            if not response.is_success:
+                last_error = f"{model} — HTTP {response.status_code}: {response.text[:200]}"
                 continue
 
-            response.raise_for_status()
             result = response.json()
-
             if "choices" not in result or not result["choices"]:
-                last_error = f"{model} returned no choices."
+                last_error = f"{model} returned no choices: {result}"
                 continue
 
             return result["choices"][0]["message"]["content"], None
@@ -120,20 +129,17 @@ def chat_ui():
         with st.chat_message("user"):
             st.write(prompt)
 
-        reply = None
-
-        # 1. Anthropic Claude (if ANTHROPIC_API_KEY is set)
+        # 1. Try Anthropic Claude (free if ANTHROPIC_API_KEY is set)
         reply = _try_anthropic(st.session_state.messages)
 
-        # 2. Free OpenRouter models (no credits needed)
+        # 2. Fall back to free OpenRouter models
         if reply is None:
             reply, error = _try_openrouter_free(st.session_state.messages)
             if reply is None:
                 st.error(
                     f"⚠️ Could not get a response: {error}\n\n"
-                    "**Fix options:**\n"
-                    "- Add `ANTHROPIC_API_KEY` to your Streamlit secrets, OR\n"
-                    "- Add credits at https://openrouter.ai/credits"
+                    "**Fix:** Add `ANTHROPIC_API_KEY` to your Streamlit secrets "
+                    "or top up credits at https://openrouter.ai/credits"
                 )
                 st.session_state.messages.pop()
                 return
