@@ -133,10 +133,26 @@ def count_repetition_shoulder_press(detector, img, landmark_list, stage, counter
 class Exercise:
     def __init__(self):
         try:
-            self.lstm_model = load_model('final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5')
+            # compile=False avoids optimizer state errors across Keras versions.
+            # custom_objects suppresses the 'batch_shape' / 'InputLayer' mismatch
+            # that occurs when a model saved with Keras 2 is loaded under Keras 3.
+            import keras
+            self.lstm_model = load_model(
+                'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
+                compile=False,
+                custom_objects={'InputLayer': keras.layers.InputLayer},
+            )
         except Exception as e:
-            print(f"Error loading LSTM model: {e}")
-            self.lstm_model = None
+            print(f"Error loading LSTM model (attempt 1): {e}")
+            try:
+                # Last-resort: load with tf.compat.v1 session (TF1 checkpoints)
+                self.lstm_model = tf.keras.models.load_model(
+                    'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
+                    compile=False,
+                )
+            except Exception as e2:
+                print(f"Error loading LSTM model (attempt 2): {e2}")
+                self.lstm_model = None
         
         try:
             self.scaler = joblib.load('thesis_bidirectionallstm_scaler.pkl')
@@ -341,7 +357,10 @@ class Exercise:
                 break
 
         cap.release()
-        cv2.destroyAllWindows()
+        try:
+            cv2.destroyAllWindows()
+        except Exception:
+            pass  # headless environment — no GUI windows to destroy
     
     # Check if hands are joined together in a 'prayer' gesture
     def are_hands_joined(self, landmark_list, stop, is_video=False):
@@ -417,7 +436,10 @@ class Exercise:
                 frames.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
             cap.release()
+            try:
             cv2.destroyAllWindows()
+        except Exception:
+            pass  # headless environment — no GUI windows to destroy
 
             if not frames:
                 status_text.text("No frames processed.")
@@ -472,4 +494,7 @@ class Exercise:
                     break
 
             cap.release()
+            try:
             cv2.destroyAllWindows()
+        except Exception:
+            pass  # headless environment — no GUI windows to destroy
