@@ -35,16 +35,7 @@ Streamlit AI Fitness Dashboard
 
 ## 🎬 Demo
 
-## ⚠️ Demo Availability
-
-Due to deployment limitations with Streamlit and certain computer vision dependencies, the live demo for this project is currently unavailable.
-
-The full implementation and source code are provided in this repository.
-
-For a reference on how the system works, you may watch a demonstration video of a similar AI pose estimation–based fitness tracking application.
-
-If required, I would be happy to provide a walkthrough video explaining the functionality and architecture of this project.
-
+https://ai-gym-tracker-using-ai-pose-estimation-mxuwe3igeulujuigvczuca.streamlit.app/
 
 
 ---
