@@ -42,23 +42,43 @@ def chat_ui():
         with st.chat_message("user"):
             st.write(prompt)
 
-        # 🔥 Direct OpenRouter API call (no openai lib)
-        response = httpx.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "openai/gpt-4o-mini",
-                "messages": st.session_state.messages,
-            },
-            timeout=30.0
-        )
+        try:
+            response = httpx.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "openai/gpt-4o-mini",
+                    "messages": st.session_state.messages,
+                },
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            result = response.json()
 
-        result = response.json()
+            # Guard against missing 'choices' (bad API key, quota exceeded, etc.)
+            if "choices" not in result or not result["choices"]:
+                error_detail = result.get("error", {})
+                if isinstance(error_detail, dict):
+                    msg = error_detail.get("message", str(result))
+                else:
+                    msg = str(result)
+                st.error(f"⚠️ OpenRouter API error: {msg}\n\nCheck that your `OPENROUTER_API_KEY` is valid and has sufficient credits.")
+                return
 
-        reply = result["choices"][0]["message"]["content"]
+            reply = result["choices"][0]["message"]["content"]
+
+        except httpx.HTTPStatusError as e:
+            st.error(f"⚠️ HTTP {e.response.status_code} from OpenRouter. Check your API key and quota.")
+            return
+        except httpx.TimeoutException:
+            st.error("⚠️ Request timed out. OpenRouter did not respond in 30 s. Try again.")
+            return
+        except Exception as e:
+            st.error(f"⚠️ Unexpected error: {e}")
+            return
 
         st.session_state.messages.append(
             {"role": "assistant", "content": reply}
