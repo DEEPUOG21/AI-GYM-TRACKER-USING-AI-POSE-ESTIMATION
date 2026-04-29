@@ -419,22 +419,24 @@ class Exercise:
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
-            import tempfile, os
+            import tempfile, os, subprocess
             status_text = st.empty()
-            detector = pm.posture_detector()
+            preview     = st.empty()
+            detector    = pm.posture_detector()
 
             original_fps = cap.get(cv2.CAP_PROP_FPS) or 30
             width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
 
-            # Stream frames directly to disk — never buffer in RAM
-            out_path = tempfile.mktemp(suffix='_out.mp4')
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out_writer = cv2.VideoWriter(out_path, fourcc, original_fps, (width, height))
+            # Write raw mp4v first (fast, no RAM buffer)
+            raw_path = tempfile.mktemp(suffix='_raw.mp4')
+            fourcc   = cv2.VideoWriter_fourcc(*'mp4v')
+            out_writer = cv2.VideoWriter(raw_path, fourcc, original_fps, (width, height))
 
             frame_count = 0
-            last_frame = None
-            status_text.text("Processing video... please wait.")
+            last_frame  = None
+            status_text.text("⏳ Processing video...")
 
             while cap.isOpened():
                 ret, frame = cap.read()
@@ -446,9 +448,11 @@ class Exercise:
 
                 if len(landmark_list) != 0:
                     if multi_stage:
-                        stage_right, stage_left, counter = count_repetition_function(detector, img, landmark_list, stage_right, stage_left, counter, self)
+                        stage_right, stage_left, counter = count_repetition_function(
+                            detector, img, landmark_list, stage_right, stage_left, counter, self)
                     else:
-                        stage, counter = count_repetition_function(detector, img, landmark_list, stage, counter, self)
+                        stage, counter = count_repetition_function(
+                            detector, img, landmark_list, stage, counter, self)
 
                     if self.are_hands_joined(landmark_list, stop=False, is_video=is_video):
                         break
@@ -458,29 +462,55 @@ class Exercise:
                 frame_count += 1
                 last_frame = img
 
-                if frame_count % 30 == 0:
-                    status_text.text(f"Processing... {frame_count} frames done.")
+                # Show live preview every 10 frames so user sees progress
+                if frame_count % 10 == 0:
+                    preview.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB),
+                                  channels="RGB", use_column_width=True)
+                    pct = int(frame_count / total_frames * 100) if total_frames else 0
+                    status_text.text(f"⏳ Processing frame {frame_count}" +
+                                     (f" / {total_frames} ({pct}%)" if total_frames else "..."))
 
             cap.release()
             out_writer.release()
             try:
                 cv2.destroyAllWindows()
             except Exception:
-                pass  # headless environment — no GUI windows to destroy
+                pass
 
             if frame_count == 0:
                 status_text.text("No frames processed.")
                 return
 
-            status_text.text(f"Done! {frame_count} frames processed. Loading video...")
-            file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
+            # Re-encode with ffmpeg to H.264/web-compatible mp4 (fast, no RAM cost)
+            status_text.text("⚙️ Finalising video...")
+            preview.empty()
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+            try:
+                subprocess.run(
+                    ["ffmpeg", "-y", "-i", raw_path,
+                     "-vcodec", "libx264", "-pix_fmt", "yuv420p",
+                     "-movflags", "+faststart", "-crf", "28",
+                     out_path],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=120, check=True
+                )
+                os.remove(raw_path)
+            except Exception:
+                # ffmpeg not available — fall back to raw file
+                out_path = raw_path
 
+            file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
             if file_size > 0:
+                status_text.text(f"✅ Done! {frame_count} frames processed.")
+                with open(out_path, "rb") as f:
+                    st.download_button("⬇️ Download processed video", f,
+                                       file_name="apex_workout.mp4", mime="video/mp4")
                 st.video(out_path)
             else:
                 status_text.text("Video encoding failed.")
                 if last_frame is not None:
-                    st.image(cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB), use_column_width=True)
+                    st.image(cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB),
+                             use_column_width=True)
         else:
             # Original webcam exercise code
             stframe = st.empty()
