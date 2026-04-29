@@ -427,7 +427,13 @@ class Exercise:
             width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            frames = []
+            # Stream frames directly to disk — never buffer in RAM
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out_writer = cv2.VideoWriter(out_path, fourcc, original_fps, (width, height))
+
+            frame_count = 0
+            last_frame = None
             status_text.text("Processing video... please wait.")
 
             while cap.isOpened():
@@ -448,37 +454,33 @@ class Exercise:
                         break
 
                 self.repetitions_counter(img, counter)
-                frames.append(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                out_writer.write(img)
+                frame_count += 1
+                last_frame = img
+
+                if frame_count % 30 == 0:
+                    status_text.text(f"Processing... {frame_count} frames done.")
 
             cap.release()
+            out_writer.release()
             try:
                 cv2.destroyAllWindows()
             except Exception:
                 pass  # headless environment — no GUI windows to destroy
 
-            if not frames:
+            if frame_count == 0:
                 status_text.text("No frames processed.")
                 return
 
-            status_text.text(f"Encoding {len(frames)} frames...")
-
-            import imageio
-            out_path = tempfile.mktemp(suffix='_out.mp4')
-            writer = imageio.get_writer(out_path, fps=original_fps, codec='libx264',
-                                       macro_block_size=1,
-                                       output_params=['-pix_fmt', 'yuv420p', '-movflags', '+faststart'])
-            for f in frames:
-                writer.append_data(f)
-            writer.close()
-
+            status_text.text(f"Done! {frame_count} frames processed. Loading video...")
             file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
-            status_text.text(f"Done! File size: {file_size} bytes. Loading video...")
 
             if file_size > 0:
                 st.video(out_path)
             else:
-                status_text.text("Video encoding failed - showing last frame only.")
-                st.image(frames[-1], channels="RGB", use_column_width=True)
+                status_text.text("Video encoding failed.")
+                if last_frame is not None:
+                    st.image(cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB), use_column_width=True)
         else:
             # Original webcam exercise code
             stframe = st.empty()
