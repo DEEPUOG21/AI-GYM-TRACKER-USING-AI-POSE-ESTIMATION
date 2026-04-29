@@ -9,6 +9,50 @@ from tensorflow.keras.models import load_model
 import mediapipe as mp
 import time
 
+# ── SINGLETON MODEL CACHE ─────────────────────────────────────────────
+# Load once so multiple Exercise() instances don't each consume
+# 400-600 MB re-loading the BiLSTM model into RAM (causes OOM on free tier).
+_lstm_model    = None
+_scaler        = None
+_label_encoder = None
+_models_loaded = False
+
+def _load_models_once():
+    global _lstm_model, _scaler, _label_encoder, _models_loaded
+    if _models_loaded:
+        return
+    _models_loaded = True  # set early to prevent re-entry on error
+
+    try:
+        import keras
+        _lstm_model = load_model(
+            'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
+            compile=False,
+            custom_objects={'InputLayer': keras.layers.InputLayer},
+        )
+    except Exception as e:
+        print(f"Error loading LSTM model (attempt 1): {e}")
+        try:
+            _lstm_model = tf.keras.models.load_model(
+                'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
+                compile=False,
+            )
+        except Exception as e2:
+            print(f"Error loading LSTM model (attempt 2): {e2}")
+            _lstm_model = None
+
+    try:
+        _scaler = joblib.load('thesis_bidirectionallstm_scaler.pkl')
+    except Exception as e:
+        print(f"Error loading scaler: {e}")
+        _scaler = None
+
+    try:
+        _label_encoder = joblib.load('thesis_bidirectionallstm_label_encoder.pkl')
+    except Exception as e:
+        print(f"Error loading label encoder: {e}")
+        _label_encoder = None
+
 # Initialize MediaPipe pose
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
@@ -132,41 +176,12 @@ def count_repetition_shoulder_press(detector, img, landmark_list, stage, counter
 # Define the class that handles the analysis of the exercises
 class Exercise:
     def __init__(self):
-        try:
-            # compile=False avoids optimizer state errors across Keras versions.
-            # custom_objects suppresses the 'batch_shape' / 'InputLayer' mismatch
-            # that occurs when a model saved with Keras 2 is loaded under Keras 3.
-            import keras
-            self.lstm_model = load_model(
-                'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
-                compile=False,
-                custom_objects={'InputLayer': keras.layers.InputLayer},
-            )
-        except Exception as e:
-            print(f"Error loading LSTM model (attempt 1): {e}")
-            try:
-                # Last-resort: load with tf.compat.v1 session (TF1 checkpoints)
-                self.lstm_model = tf.keras.models.load_model(
-                    'final_forthesis_bidirectionallstm_and_encoders_exercise_classifier_model.h5',
-                    compile=False,
-                )
-            except Exception as e2:
-                print(f"Error loading LSTM model (attempt 2): {e2}")
-                self.lstm_model = None
-        
-        try:
-            self.scaler = joblib.load('thesis_bidirectionallstm_scaler.pkl')
-        except Exception as e:
-            print(f"Error loading scaler: {e}")
-            self.scaler = None
-        
-        try:
-            self.label_encoder = joblib.load('thesis_bidirectionallstm_label_encoder.pkl')
-            self.exercise_classes = self.label_encoder.classes_
-        except Exception as e:
-            print(f"Error loading label encoder: {e}")
-            self.label_encoder = None
-            self.exercise_classes = []
+        # Use module-level singleton — avoids reloading 400 MB model on every instantiation
+        _load_models_once()
+        self.lstm_model    = _lstm_model
+        self.scaler        = _scaler
+        self.label_encoder = _label_encoder
+        self.exercise_classes = _label_encoder.classes_ if _label_encoder is not None else []
 
     def extract_features(self, landmarks):
         features = []
