@@ -431,8 +431,13 @@ class Exercise:
 
             # Pipe raw BGR frames straight into ffmpeg → browser-ready H.264 mp4
             out_path = tempfile.mktemp(suffix='_out.mp4')
+            # Use full path — Streamlit Cloud's PATH may not include /usr/bin
+            ffmpeg_bin = "/usr/bin/ffmpeg"
+            import shutil
+            if not os.path.exists(ffmpeg_bin):
+                ffmpeg_bin = shutil.which("ffmpeg") or ffmpeg_bin
             ffmpeg_cmd = [
-                "ffmpeg", "-y",
+                ffmpeg_bin, "-y",
                 "-f", "rawvideo", "-vcodec", "rawvideo",
                 "-s", f"{width}x{height}",
                 "-pix_fmt", "bgr24",
@@ -451,8 +456,8 @@ class Exercise:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-            except FileNotFoundError:
-                status_text.text("❌ ffmpeg not found on this server.")
+            except (FileNotFoundError, OSError) as e:
+                status_text.text(f"❌ ffmpeg not available: {e}")
                 return
 
             frame_count = 0
