@@ -424,15 +424,36 @@ class Exercise:
             preview     = st.empty()
             detector    = pm.posture_detector()
 
-            original_fps = cap.get(cv2.CAP_PROP_FPS) or 30
-            width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+            original_fps  = cap.get(cv2.CAP_PROP_FPS) or 30
+            width         = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height        = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            total_frames  = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
 
-            # Write raw mp4v first (fast, no RAM buffer)
-            raw_path = tempfile.mktemp(suffix='_raw.mp4')
-            fourcc   = cv2.VideoWriter_fourcc(*'mp4v')
-            out_writer = cv2.VideoWriter(raw_path, fourcc, original_fps, (width, height))
+            # Pipe raw BGR frames straight into ffmpeg → browser-ready H.264 mp4
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+            ffmpeg_cmd = [
+                "ffmpeg", "-y",
+                "-f", "rawvideo", "-vcodec", "rawvideo",
+                "-s", f"{width}x{height}",
+                "-pix_fmt", "bgr24",
+                "-r", str(original_fps),
+                "-i", "pipe:0",
+                "-vcodec", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
+                "-crf", "28",
+                out_path
+            ]
+            try:
+                ffmpeg_proc = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except FileNotFoundError:
+                status_text.text("❌ ffmpeg not found on this server.")
+                return
 
             frame_count = 0
             last_frame  = None
@@ -458,11 +479,13 @@ class Exercise:
                         break
 
                 self.repetitions_counter(img, counter)
-                out_writer.write(img)
+
+                # Write raw BGR bytes directly to ffmpeg stdin
+                ffmpeg_proc.stdin.write(img.tobytes())
                 frame_count += 1
                 last_frame = img
 
-                # Show live preview every 10 frames so user sees progress
+                # Live preview every 10 frames
                 if frame_count % 10 == 0:
                     preview.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB),
                                   channels="RGB", use_column_width=True)
@@ -471,40 +494,26 @@ class Exercise:
                                      (f" / {total_frames} ({pct}%)" if total_frames else "..."))
 
             cap.release()
-            out_writer.release()
             try:
                 cv2.destroyAllWindows()
             except Exception:
                 pass
 
+            # Close ffmpeg stdin so it finishes writing
+            ffmpeg_proc.stdin.close()
+            ffmpeg_proc.wait()
+            preview.empty()
+
             if frame_count == 0:
                 status_text.text("No frames processed.")
                 return
-
-            # Re-encode with ffmpeg to H.264/web-compatible mp4 (fast, no RAM cost)
-            status_text.text("⚙️ Finalising video...")
-            preview.empty()
-            out_path = tempfile.mktemp(suffix='_out.mp4')
-            try:
-                subprocess.run(
-                    ["ffmpeg", "-y", "-i", raw_path,
-                     "-vcodec", "libx264", "-pix_fmt", "yuv420p",
-                     "-movflags", "+faststart", "-crf", "28",
-                     out_path],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    timeout=120, check=True
-                )
-                os.remove(raw_path)
-            except Exception:
-                # ffmpeg not available — fall back to raw file
-                out_path = raw_path
 
             file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
             if file_size > 0:
                 status_text.text(f"✅ Done! {frame_count} frames processed.")
                 st.video(out_path)
             else:
-                status_text.text("Video encoding failed.")
+                status_text.text("❌ Video encoding failed.")
                 if last_frame is not None:
                     st.image(cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB),
                              use_column_width=True)
