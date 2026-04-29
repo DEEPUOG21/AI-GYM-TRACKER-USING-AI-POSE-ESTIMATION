@@ -419,49 +419,19 @@ class Exercise:
     # Generic exercise method
     def exercise_method(self, cap, is_video, count_repetition_function, multi_stage=False, counter=0, stage=None, stage_right=None, stage_left=None):
         if is_video:
-            import tempfile, os, subprocess
+            import tempfile, os
+            import imageio.v3 as iio
+            import numpy as np
             status_text = st.empty()
             preview     = st.empty()
             detector    = pm.posture_detector()
 
-            original_fps  = cap.get(cv2.CAP_PROP_FPS) or 30
-            width         = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height        = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            original_fps  = int(cap.get(cv2.CAP_PROP_FPS) or 30)
             total_frames  = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-
-            # Pipe raw BGR frames straight into ffmpeg → browser-ready H.264 mp4
-            out_path = tempfile.mktemp(suffix='_out.mp4')
-            # Use full path — Streamlit Cloud's PATH may not include /usr/bin
-            ffmpeg_bin = "/usr/bin/ffmpeg"
-            import shutil
-            if not os.path.exists(ffmpeg_bin):
-                ffmpeg_bin = shutil.which("ffmpeg") or ffmpeg_bin
-            ffmpeg_cmd = [
-                ffmpeg_bin, "-y",
-                "-f", "rawvideo", "-vcodec", "rawvideo",
-                "-s", f"{width}x{height}",
-                "-pix_fmt", "bgr24",
-                "-r", str(original_fps),
-                "-i", "pipe:0",
-                "-vcodec", "libx264",
-                "-pix_fmt", "yuv420p",
-                "-movflags", "+faststart",
-                "-crf", "28",
-                out_path
-            ]
-            try:
-                ffmpeg_proc = subprocess.Popen(
-                    ffmpeg_cmd,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except (FileNotFoundError, OSError) as e:
-                status_text.text(f"❌ ffmpeg not available: {e}")
-                return
 
             frame_count = 0
             last_frame  = None
+            all_frames  = []
             status_text.text("⏳ Processing video...")
 
             while cap.isOpened():
@@ -484,16 +454,13 @@ class Exercise:
                         break
 
                 self.repetitions_counter(img, counter)
-
-                # Write raw BGR bytes directly to ffmpeg stdin
-                ffmpeg_proc.stdin.write(img.tobytes())
+                rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                all_frames.append(rgb)
                 frame_count += 1
-                last_frame = img
+                last_frame = rgb
 
-                # Live preview every 10 frames
                 if frame_count % 10 == 0:
-                    preview.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB),
-                                  channels="RGB", use_column_width=True)
+                    preview.image(rgb, channels="RGB", use_column_width=True)
                     pct = int(frame_count / total_frames * 100) if total_frames else 0
                     status_text.text(f"⏳ Processing frame {frame_count}" +
                                      (f" / {total_frames} ({pct}%)" if total_frames else "..."))
@@ -504,13 +471,26 @@ class Exercise:
             except Exception:
                 pass
 
-            # Close ffmpeg stdin so it finishes writing
-            ffmpeg_proc.stdin.close()
-            ffmpeg_proc.wait()
             preview.empty()
 
             if frame_count == 0:
                 status_text.text("No frames processed.")
+                return
+
+            status_text.text("⚙️ Encoding video...")
+            out_path = tempfile.mktemp(suffix='_out.mp4')
+            try:
+                iio.imwrite(
+                    out_path,
+                    np.stack(all_frames),
+                    fps=original_fps,
+                    codec="h264",
+                )
+                del all_frames
+            except Exception as e:
+                status_text.text(f"❌ Encoding failed: {e}")
+                if last_frame is not None:
+                    st.image(last_frame, use_column_width=True)
                 return
 
             file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
@@ -520,8 +500,8 @@ class Exercise:
             else:
                 status_text.text("❌ Video encoding failed.")
                 if last_frame is not None:
-                    st.image(cv2.cvtColor(last_frame, cv2.COLOR_BGR2RGB),
-                             use_column_width=True)
+                    st.image(last_frame, use_column_width=True)
+
         else:
             # Original webcam exercise code
             stframe = st.empty()
