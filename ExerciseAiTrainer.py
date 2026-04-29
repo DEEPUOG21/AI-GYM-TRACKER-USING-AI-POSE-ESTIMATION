@@ -502,9 +502,6 @@ class Exercise:
             file_size = os.path.getsize(out_path) if os.path.exists(out_path) else 0
             if file_size > 0:
                 status_text.text(f"✅ Done! {frame_count} frames processed.")
-                with open(out_path, "rb") as f:
-                    st.download_button("⬇️ Download processed video", f,
-                                       file_name="apex_workout.mp4", mime="video/mp4")
                 st.video(out_path)
             else:
                 status_text.text("Video encoding failed.")
