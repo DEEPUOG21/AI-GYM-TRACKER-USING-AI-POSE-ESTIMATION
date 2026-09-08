@@ -1,5 +1,2 @@
 libgl1
-libxext6
-libglib2.0-dev
-
-
+libglib2.0-0

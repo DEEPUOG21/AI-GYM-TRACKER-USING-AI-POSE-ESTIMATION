@@ -1,0 +1,15 @@
+.git
+.venv
+.env
+.streamlit/secrets.toml
+.tokensave
+.claude
+__pycache__
+**/.tokensave
+**/.claude
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/*.py[cod]
+reports
+data

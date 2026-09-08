@@ -1,0 +1,21 @@
+{
+  "input_shape": [
+    null,
+    30,
+    22
+  ],
+  "scaler_features": 660,
+  "keras_version": "3.3.3",
+  "sklearn_version": "1.5.0",
+  "labels": [
+    "barbell biceps curl",
+    "push-up",
+    "shoulder press",
+    "squat"
+  ],
+  "artifacts": {
+    "exercise_bilstm.h5": "859d01a10894f88196dc2512e3c01261178c450a7942dc5447f34956bee32052",
+    "label_encoder.pkl": "eb9d254d2020a40d0287aebcef056c5bb4aabef83836d0b49e45e6d35351829d",
+    "feature_scaler.pkl": "bc82a95860b9cca554ae1cf309b655278ef15ed022a901977a037a67f56537bd"
+  }
+}
